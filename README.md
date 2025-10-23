@@ -14,6 +14,13 @@ This project is licensed under the [Apache License 2.0](LICENSE).
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 
+---
+
+<img width="1918" height="1400" alt="1" src="https://github.com/user-attachments/assets/2177be87-e0a3-4148-8487-5215e026d192" />
+<img width="1918" height="1784" alt="2" src="https://github.com/user-attachments/assets/fa43f738-a15d-4919-9efa-a6ec8e07d73b" />
+
+---
+
 ## Features
 - **Multiple OCR Models**: Supports four OCR models: Nanonets-OCR2-3B, Chandra-OCR, olmOCR-2-7B-1025, and Dots.OCR.
 - **Gradio Interface**: Intuitive web-based UI for uploading images and entering queries.
