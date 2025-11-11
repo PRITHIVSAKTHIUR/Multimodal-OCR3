@@ -122,39 +122,6 @@ if torch.cuda.is_available():
 
 print("Using device:", device)
 
-CACHE_PATH = "./model_cache"
-if not os.path.exists(CACHE_PATH):
-    os.makedirs(CACHE_PATH)
-
-
-model_path_d_local = snapshot_download(
-    repo_id='rednote-hilab/dots.ocr',
-    local_dir=os.path.join(CACHE_PATH, 'dots.ocr'),
-    max_workers=20,
-    local_dir_use_symlinks=False
-)
-
-config_file_path = os.path.join(model_path_d_local, "configuration_dots.py")
-
-if os.path.exists(config_file_path):
-    with open(config_file_path, 'r') as f:
-        input_code = f.read()
-
-    lines = input_code.splitlines()
-    if "class DotsVLProcessor" in input_code and not any("attributes = " in line for line in lines):
-        output_lines = []
-        for line in lines:
-            output_lines.append(line)
-            if line.strip().startswith("class DotsVLProcessor"):
-                output_lines.append("    attributes = [\"image_processor\", \"tokenizer\"]")
-
-        with open(config_file_path, 'w') as f:
-            f.write('\n'.join(output_lines))
-        print("Patched configuration_dots.py successfully.")
-
-
-sys.path.append(model_path_d_local)
-
 MAX_MAX_NEW_TOKENS = 4096
 DEFAULT_MAX_NEW_TOKENS = 2048
 MAX_INPUT_TOKEN_LENGTH = int(os.getenv("MAX_INPUT_TOKEN_LENGTH", "4096"))
@@ -176,11 +143,11 @@ processor_x = AutoProcessor.from_pretrained(MODEL_ID_X, trust_remote_code=True)
 model_x = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_ID_X,
     trust_remote_code=True,
-    torch_dtype=torch.float16
+    torch_dtype=torch.bfloat16,
 ).to(device).eval()
 
 # Load Dots.OCR from the local, patched directory
-MODEL_PATH_D = model_path_d_local
+MODEL_PATH_D = "prithivMLmods/Dots.OCR-Latest-BF16" # -> alt of [rednote-hilab/dots.ocr]
 processor_d = AutoProcessor.from_pretrained(MODEL_PATH_D, trust_remote_code=True)
 model_d = AutoModelForCausalLM.from_pretrained(
     MODEL_PATH_D,
@@ -263,9 +230,9 @@ def generate_image(model_name: str, text: str, image: Image.Image,
         yield buffer, buffer
 
 image_examples = [
+    ["OCR the content perfectly.", "examples/3.jpg"],
     ["Perform OCR on the image.", "examples/1.jpg"],
     ["Extract the contents. [page].", "examples/2.jpg"],
-    ["OCR the content perfectly.", "examples/3.jpg"],
 ]
 
 with gr.Blocks(css=css, theme=steel_blue_theme) as demo:
@@ -295,7 +262,7 @@ with gr.Blocks(css=css, theme=steel_blue_theme) as demo:
                     markdown_output = gr.Markdown(label="(Result.Md)")
 
                 model_choice = gr.Radio(
-                    choices=["Nanonets-OCR2-3B", "Chandra-OCR", "olmOCR-2-7B-1025", "Dots.OCR"],
+                    choices=["Nanonets-OCR2-3B", "Chandra-OCR", "Dots.OCR", "olmOCR-2-7B-1025"],
                     label="Select Model",
                     value="Nanonets-OCR2-3B"
                 )
