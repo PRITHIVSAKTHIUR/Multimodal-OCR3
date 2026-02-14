@@ -1,6 +1,12 @@
 # **Multimodal-OCR3**
 
-Multimodal-OCR3 is an advanced Optical Character Recognition (OCR) application that leverages multiple state-of-the-art multimodal models to extract text from images. Built with a user-friendly Gradio interface, it supports models like Nanonets-OCR2-3B, Chandra-OCR, olmOCR-2-7B-1025, and Dots.OCR, enabling robust text extraction with customizable generation parameters.
+> [!note]
+HF Demo: https://huggingface.co/spaces/prithivMLmods/Multimodal-OCR3
+
+> Multimodal-OCR3 is an advanced Optical Character Recognition (OCR) application that leverages multiple state-of-the-art multimodal models to extract text from images. Built with a user-friendly Gradio interface, it supports models like Nanonets-OCR2-3B, Chandra-OCR, olmOCR-2-7B-1025, and Dots.OCR, enabling robust text extraction with customizable generation parameters.
+
+> [!important] 
+note: remove kernels and flash_attn3 implementation if you are using it on *non-hopper* architecture gpus.
 
 This project is licensed under the [Apache License 2.0](LICENSE).
 
@@ -102,26 +108,23 @@ All models are loaded with `torch.float16` or `torch.bfloat16` precision and uti
 ## Requirements
 The following packages are required to run Multimodal-OCR3:
 ```
-flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.3/flash_attn-2.7.3+cu12torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+git+https://github.com/huggingface/transformers.git@v4.57.6
+git+https://github.com/huggingface/accelerate.git
+git+https://github.com/huggingface/peft.git
 transformers-stream-generator
 huggingface_hub
 qwen-vl-utils
 sentencepiece
 opencv-python
-torch==2.6.0
-transformers
+torch==2.8.0
 torchvision
 matplotlib
-accelerate
 requests
+kernels
 hf_xet
 spaces
 pillow
-gradio
-einops
-peft
-fpdf
-timm
+gradio # - gradio@6.3.0
 av
 ```
 
