@@ -101,12 +101,46 @@ css = """
     font-size: 2.3em !important;
 }
 #output-title h2 {
-    font-size: 2.1em !important;
+    font-size: 2.2em !important;
+}
+
+/* RadioAnimated Styles */
+.ra-wrap{ width: fit-content; }
+.ra-inner{
+  position: relative; display: inline-flex; align-items: center; gap: 0; padding: 6px;
+  background: var(--neutral-200); border-radius: 9999px; overflow: hidden;
+}
+.ra-input{ display: none; }
+.ra-label{
+  position: relative; z-index: 2; padding: 8px 16px;
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  color: var(--neutral-500); cursor: pointer; transition: color 0.2s; white-space: nowrap;
+}
+.ra-highlight{
+  position: absolute; z-index: 1; top: 6px; left: 6px;
+  height: calc(100% - 12px); border-radius: 9999px;
+  background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s, width 0.2s;
+}
+.ra-input:checked + .ra-label{ color: black; }
+
+/* Dark mode adjustments for Radio */
+.dark .ra-inner { background: var(--neutral-800); }
+.dark .ra-label { color: var(--neutral-400); }
+.dark .ra-highlight { background: var(--neutral-600); }
+.dark .ra-input:checked + .ra-label { color: white; }
+
+#gpu-duration-container {
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--background-fill-secondary);
+    border: 1px solid var(--border-color-primary);
+    margin-top: 10px;
 }
 """
 
 MAX_MAX_NEW_TOKENS = 4096
-DEFAULT_MAX_NEW_TOKENS = 1024
+DEFAULT_MAX_NEW_TOKENS = 2048
 MAX_INPUT_TOKEN_LENGTH = int(os.getenv("MAX_INPUT_TOKEN_LENGTH", "4096"))
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -122,54 +156,130 @@ if torch.cuda.is_available():
 
 print("Using device:", device)
 
-MAX_MAX_NEW_TOKENS = 4096
-DEFAULT_MAX_NEW_TOKENS = 2048
-MAX_INPUT_TOKEN_LENGTH = int(os.getenv("MAX_INPUT_TOKEN_LENGTH", "4096"))
+class RadioAnimated(gr.HTML):
+    def __init__(self, choices, value=None, **kwargs):
+        if not choices or len(choices) < 2:
+            raise ValueError("RadioAnimated requires at least 2 choices.")
+        if value is None:
+            value = choices[0]
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        uid = uuid.uuid4().hex[:8]
+        group_name = f"ra-{uid}"
 
-# Load Chandra-OCR
+        inputs_html = "\n".join(
+            f"""
+            <input class="ra-input" type="radio" name="{group_name}" id="{group_name}-{i}" value="{c}">
+            <label class="ra-label" for="{group_name}-{i}">{c}</label>
+            """
+            for i, c in enumerate(choices)
+        )
+
+        html_template = f"""
+        <div class="ra-wrap" data-ra="{uid}">
+          <div class="ra-inner">
+            <div class="ra-highlight"></div>
+            {inputs_html}
+          </div>
+        </div>
+        """
+
+        js_on_load = r"""
+        (() => {
+          const wrap = element.querySelector('.ra-wrap');
+          const inner = element.querySelector('.ra-inner');
+          const highlight = element.querySelector('.ra-highlight');
+          const inputs = Array.from(element.querySelectorAll('.ra-input'));
+
+          if (!inputs.length) return;
+
+          const choices = inputs.map(i => i.value);
+
+          function setHighlightByIndex(idx) {
+            const n = choices.length;
+            const pct = 100 / n;
+            highlight.style.width = `calc(${pct}% - 6px)`;
+            highlight.style.transform = `translateX(${idx * 100}%)`;
+          }
+
+          function setCheckedByValue(val, shouldTrigger=false) {
+            const idx = Math.max(0, choices.indexOf(val));
+            inputs.forEach((inp, i) => { inp.checked = (i === idx); });
+            setHighlightByIndex(idx);
+
+            props.value = choices[idx];
+            if (shouldTrigger) trigger('change', props.value);
+          }
+
+          setCheckedByValue(props.value ?? choices[0], false);
+
+          inputs.forEach((inp) => {
+            inp.addEventListener('change', () => {
+              setCheckedByValue(inp.value, true);
+            });
+          });
+        })();
+        """
+
+        super().__init__(
+            value=value,
+            html_template=html_template,
+            js_on_load=js_on_load,
+            **kwargs
+        )
+
+def apply_gpu_duration(val: str):
+    return int(val)
+
 MODEL_ID_V = "datalab-to/chandra"
 processor_v = AutoProcessor.from_pretrained(MODEL_ID_V, trust_remote_code=True)
 model_v = Qwen3VLForConditionalGeneration.from_pretrained(
     MODEL_ID_V,
+    attn_implementation="kernels-community/flash-attn2",
     trust_remote_code=True,
     torch_dtype=torch.float16
 ).to(device).eval()
 
-# Load Nanonets-OCR2-3B
 MODEL_ID_X = "nanonets/Nanonets-OCR2-3B"
 processor_x = AutoProcessor.from_pretrained(MODEL_ID_X, trust_remote_code=True)
 model_x = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_ID_X,
+    attn_implementation="kernels-community/flash-attn2",
     trust_remote_code=True,
     torch_dtype=torch.bfloat16,
 ).to(device).eval()
 
-# Load Dots.OCR from the local, patched directory
 MODEL_PATH_D = "prithivMLmods/Dots.OCR-Latest-BF16" # -> alt of [rednote-hilab/dots.ocr]
 processor_d = AutoProcessor.from_pretrained(MODEL_PATH_D, trust_remote_code=True)
 model_d = AutoModelForCausalLM.from_pretrained(
     MODEL_PATH_D,
-    attn_implementation="flash_attention_2",
+    attn_implementation="kernels-community/flash-attn2",
     torch_dtype=torch.bfloat16,
     device_map="auto",
     trust_remote_code=True
 ).eval()
 
-# Load olmOCR-2-7B-1025
 MODEL_ID_M = "allenai/olmOCR-2-7B-1025"
 processor_m = AutoProcessor.from_pretrained(MODEL_ID_M, trust_remote_code=True)
 model_m = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_ID_M,
+    attn_implementation="kernels-community/flash-attn2",
     trust_remote_code=True,
     torch_dtype=torch.float16
 ).to(device).eval()
 
-@spaces.GPU
+def calc_timeout_image(model_name: str, text: str, image: Image.Image,
+                       max_new_tokens: int, temperature: float, top_p: float,
+                       top_k: int, repetition_penalty: float, gpu_timeout: int):
+    """Calculate GPU timeout duration for image inference."""
+    try:
+        return int(gpu_timeout)
+    except:
+        return 60
+
+@spaces.GPU(duration=calc_timeout_image)
 def generate_image(model_name: str, text: str, image: Image.Image,
                    max_new_tokens: int, temperature: float, top_p: float,
-                   top_k: int, repetition_penalty: float):
+                   top_k: int, repetition_penalty: float, gpu_timeout: int = 60):
     """
     Generates responses using the selected model for image input.
     Yields raw text and Markdown-formatted text.
@@ -230,12 +340,12 @@ def generate_image(model_name: str, text: str, image: Image.Image,
         yield buffer, buffer
 
 image_examples = [
-    ["OCR the content perfectly.", "examples/3.jpg"],
-    ["Perform OCR on the image.", "examples/1.jpg"],
-    ["Extract the contents. [page].", "examples/2.jpg"],
+    ["Convert to Markdown.", "examples/3.jpg"],
+    ["Perform OCR on the image. [Markdown]", "examples/1.jpg"],
+    ["Extract the contents. [Markdown].", "examples/2.jpg"],
 ]
 
-with gr.Blocks(css=css, theme=steel_blue_theme) as demo:
+with gr.Blocks() as demo:
     gr.Markdown("# **Multimodal OCR3**", elem_id="main-title")
     with gr.Row():
         with gr.Column(scale=2):
@@ -256,22 +366,41 @@ with gr.Blocks(css=css, theme=steel_blue_theme) as demo:
                 repetition_penalty = gr.Slider(label="Repetition penalty", minimum=1.0, maximum=2.0, step=0.05, value=1.1)
                 
         with gr.Column(scale=3):
-                gr.Markdown("## Output", elem_id="output-title")
-                output = gr.Textbox(label="Raw Output Stream", interactive=False, lines=11, show_copy_button=True)
-                with gr.Accordion("(Result.md)", open=False):
-                    markdown_output = gr.Markdown(label="(Result.Md)")
+            gr.Markdown("## Output", elem_id="output-title")
+            output = gr.Textbox(label="Raw Output Stream", interactive=True, lines=15)
+            with gr.Accordion("(Result.md)", open=False):
+                markdown_output = gr.Markdown(label="(Result.Md)")
 
-                model_choice = gr.Radio(
-                    choices=["Nanonets-OCR2-3B", "Chandra-OCR", "Dots.OCR", "olmOCR-2-7B-1025"],
-                    label="Select Model",
-                    value="Nanonets-OCR2-3B"
-                )
+            model_choice = gr.Radio(
+                choices=["Nanonets-OCR2-3B", "Chandra-OCR", "Dots.OCR", "olmOCR-2-7B-1025"],
+                label="Select Model",
+                value="Nanonets-OCR2-3B"
+            )
+            
+            with gr.Row(elem_id="gpu-duration-container"):
+                with gr.Column():
+                    gr.Markdown("**GPU Duration (seconds)**")
+                    radioanimated_gpu_duration = RadioAnimated(
+                        choices=["60", "90", "120", "180", "240", "300"],
+                        value="60",
+                        elem_id="radioanimated_gpu_duration"
+                    )
+                    gpu_duration_state = gr.Number(value=60, visible=False)
+            
+            gr.Markdown("*Note: Higher GPU duration allows for longer processing but consumes more GPU quota.*")
+            
+    radioanimated_gpu_duration.change(
+        fn=apply_gpu_duration,
+        inputs=radioanimated_gpu_duration,
+        outputs=[gpu_duration_state],
+        api_visibility="private"
+    )
 
     image_submit.click(
         fn=generate_image,
-        inputs=[model_choice, image_query, image_upload, max_new_tokens, temperature, top_p, top_k, repetition_penalty],
+        inputs=[model_choice, image_query, image_upload, max_new_tokens, temperature, top_p, top_k, repetition_penalty, gpu_duration_state],
         outputs=[output, markdown_output]
     )
 
 if __name__ == "__main__":
-    demo.queue(max_size=50).launch(mcp_server=True, ssr_mode=False, show_error=True)
+    demo.queue(max_size=50).launch(css=css, theme=steel_blue_theme, mcp_server=True, ssr_mode=False, show_error=True)
