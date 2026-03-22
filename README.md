@@ -1,113 +1,46 @@
 # **Multimodal-OCR3**
 
-> [!note]
-HF Demo: https://huggingface.co/spaces/prithivMLmods/Multimodal-OCR3
+Multimodal-OCR3 is a highly capable, experimental optical character recognition and visual processing suite designed for precise text extraction, document parsing, and markdown generation. Leveraging a powerful selection of vision-language and causal language models—including architectures like Nanonets-OCR2-3B, Chandra-OCR, Dots.OCR, and olmOCR-2-7B—this application specializes in deciphering complex document layouts, dense texts, and real-world scene imagery. The tool features a highly customized, interactive web interface that enables users to effortlessly upload screenshots, receipts, and multi-page documents for rapid analysis. With built-in support for fully GPU-accelerated inference and granular manipulation of generation parameters, Multimodal-OCR3 provides researchers and developers with a streamlined environment for building, testing, and deploying robust document intelligence and multimodal workflows.
 
-> Multimodal-OCR3 is an advanced Optical Character Recognition (OCR) application that leverages multiple state-of-the-art multimodal models to extract text from images. Built with a user-friendly Gradio interface, it supports models like Nanonets-OCR2-3B, Chandra-OCR, olmOCR-2-7B-1025, and Dots.OCR, enabling robust text extraction with customizable generation parameters.
+<img width="1920" height="1798" alt="Screenshot 2026-03-22 at 12-34-40 Multimodal OCR3 - a Hugging Face Space by prithivMLmods" src="https://github.com/user-attachments/assets/5ac37b79-b5af-484c-a77c-3076a1d1cba0" />
 
-> [!important] 
-note: remove kernels and flash_attn3 implementation if you are using it on *non-hopper* architecture gpus.
+### **Key Features**
 
-This project is licensed under the [Apache License 2.0](LICENSE).
+* **Multi-Model Architecture:** Seamlessly switch between specialized models directly from the interface. Supported models include `Nanonets-OCR2-3B`, `Chandra-OCR`, `Dots.OCR`, and `olmOCR-2-7B-1025`.
+* **Custom User Interface:** Features a bespoke, responsive Gradio frontend built with custom HTML, CSS, and JavaScript. It includes a drag-and-drop media zone, real-time output streaming, and an integrated advanced settings panel.
+* **Granular Inference Controls:** Fine-tune the AI's output by adjusting text generation parameters such as Maximum New Tokens, Temperature, Top-p, Top-k, and Repetition Penalty.
+* **Output Management:** Built-in actions allow users to instantly copy the raw output text to their clipboard or save the generated response directly as a `.txt` file.
+* **Flash Attention 2 Integration:** Utilizes `kernels-community/flash-attn2` for optimized, memory-efficient inference on compatible GPUs.
 
-## Table of Contents
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Model Details](#model-details)
-- [Requirements](#requirements)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
+### **Repository Structure**
 
----
-
-<img width="1918" height="1400" alt="1" src="https://github.com/user-attachments/assets/2177be87-e0a3-4148-8487-5215e026d192" />
-<img width="1918" height="1784" alt="2" src="https://github.com/user-attachments/assets/fa43f738-a15d-4919-9efa-a6ec8e07d73b" />
-
----
-
-## Features
-- **Multiple OCR Models**: Supports four OCR models: Nanonets-OCR2-3B, Chandra-OCR, olmOCR-2-7B-1025, and Dots.OCR.
-- **Gradio Interface**: Intuitive web-based UI for uploading images and entering queries.
-- **Customizable Parameters**: Adjust max new tokens, temperature, top-p, top-k, and repetition penalty for text generation.
-- **Real-time Streaming**: View OCR output as it is generated.
-- **Example Inputs**: Predefined example queries and images for quick testing.
-- **Custom Theme**: Styled with a unique SteelBlue theme for an enhanced user experience.
-
-## Installation
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/PRITHIVSAKTHIUR/Multimodal-OCR3.git
-   cd Multimodal-OCR3
-   ```
-
-2. **Set Up a Virtual Environment** (recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install Dependencies**:
-   Ensure you have Python 3.10+ installed, then install the required packages:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-   The `requirements.txt` includes dependencies such as `torch`, `transformers`, `gradio`, and `flash-attn`. See the [Requirements](#requirements) section for the full list.
-
-4. **Download Models**:
-   The application automatically downloads and caches the required models from Hugging Face during the first run. Ensure you have sufficient disk space in the `./model_cache` directory.
-
-5. **Run the Application**:
-   Launch the Gradio interface:
-   ```bash
-   python app.py
-   ```
-   This will start a local web server, and you can access the interface via the provided URL (typically `http://localhost:7860`).
-
-## Usage
-
-1. **Access the Interface**:
-   Open the Gradio interface in your browser after running the application.
-
-2. **Select a Model**:
-   Choose one of the supported models (e.g., Nanonets-OCR2-3B) from the radio buttons.
-
-3. **Upload an Image**:
-   Upload an image containing text you want to extract.
-
-4. **Enter a Query**:
-   Provide a query (e.g., "Perform OCR on the image") in the text input box.
-
-5. **Adjust Advanced Options** (optional):
-   Modify parameters like `max_new_tokens`, `temperature`, `top_p`, `top_k`, and `repetition_penalty` for fine-tuned results.
-
-6. **Submit**:
-   Click the "Submit" button to process the image and view the extracted text in real-time.
-
-7. **View Output**:
-   The raw text output and Markdown-formatted results will appear in the output section.
-
-### Example Usage
-The application includes example inputs for quick testing:
-- **Query**: "Perform OCR on the image."
-- **Image**: `examples/1.jpg`
-- **Output**: Extracted text from the image.
-
-## Model Details
-Multimodal-OCR3 integrates the following models:
-- **Nanonets-OCR2-3B**: A lightweight, efficient OCR model for text extraction.
-- **Chandra-OCR**: A high-precision model optimized for complex documents.
-- **olmOCR-2-7B-1025**: A robust model for diverse image types, developed by Allen AI.
-- **Dots.OCR**: A custom-patched model for enhanced OCR performance.
-
-All models are loaded with `torch.float16` or `torch.bfloat16` precision and utilize GPU acceleration (if available) via CUDA.
-
-## Requirements
-The following packages are required to run Multimodal-OCR3:
+```text
+├── examples/
+│   ├── 1.jpg
+│   ├── 2.jpg
+│   ├── 3.jpg
+│   └── 4.jpg
+├── app.py
+├── LICENSE
+├── pre-requirements.txt
+├── README.md
+└── requirements.txt
 ```
+
+### **Installation and Requirements**
+
+To run Multimodal-OCR3 locally, you need to configure a Python environment with the following dependencies. Ensure you have a compatible CUDA-enabled GPU for optimal performance.
+
+**1. Install Pre-requirements**
+Run the following command to update pip to the required version:
+```bash
+pip install pip>=23.0.0
+```
+
+**2. Install Core Requirements**
+Install the necessary machine learning and UI libraries. You can place these in a `requirements.txt` file and run `pip install -r requirements.txt`.
+
+```text
 git+https://github.com/huggingface/transformers.git@v4.57.6
 git+https://github.com/huggingface/accelerate.git
 git+https://github.com/huggingface/peft.git
@@ -124,30 +57,21 @@ kernels
 hf_xet
 spaces
 pillow
-gradio # - gradio@6.3.0
+gradio
 av
 ```
 
-Install them using:
+### **Usage**
+
+Once your environment is set up and the dependencies are installed, you can launch the application by running the main Python script:
+
 ```bash
-pip install -r requirements.txt
+python app.py
 ```
 
-## Contributing
-Contributions are welcome! To contribute:
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/your-feature`).
-3. Make your changes and commit (`git commit -m 'Add your feature'`).
-4. Push to the branch (`git push origin feature/your-feature`).
-5. Open a pull request.
+After the script initializes the interface, it will provide a local web address (usually `http://127.0.0.1:7860/`) which you can open in your browser to interact with the models. Note that the selected models will be downloaded and loaded into VRAM upon their first invocation.
 
-Please ensure your code adheres to the project's coding standards and includes appropriate documentation.
+### **License and Source**
 
-## License
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-- [Hugging Face](https://huggingface.co/) for providing the pretrained models.
-- [Gradio](https://gradio.app/) for the intuitive web interface framework.
-- [PyTorch](https://pytorch.org/) for the deep learning backend.
-- The open-source community for contributions to dependencies like `transformers` and `flash-attn`.
+* **License:** Apache License - Version 2.0
+* **GitHub Repository:** [https://github.com/PRITHIVSAKTHIUR/Multimodal-OCR3.git](https://github.com/PRITHIVSAKTHIUR/Multimodal-OCR3.git)
